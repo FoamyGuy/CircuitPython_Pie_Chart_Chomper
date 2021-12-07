@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.5" tiledversion="1.7.2" orientation="orthogonal" renderorder="right-down" width="16" height="16" tilewidth="15" tileheight="15" infinite="0" nextlayerid="4" nextobjectid="1">
  <editorsettings>
-  <export target="pacman_map_0.json" format="json"/>
+  <export target="pacman_map_2.json" format="json"/>
  </editorsettings>
  <tileset firstgid="1" name="sprite_sheet" tilewidth="15" tileheight="15" tilecount="25" columns="5">
   <image source="sprite_sheet.bmp" trans="00ff00" width="75" height="75"/>
@@ -156,7 +156,7 @@
    </properties>
   </tile>
  </tileset>
- <layer id="1" name="background" width="16" height="16" visible="0">
+ <layer id="1" name="background" width="16" height="16">
   <data encoding="csv">
 18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
 18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
@@ -167,13 +167,13 @@
 18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
 18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
 18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
+18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
+18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
+18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
+18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
+18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,
+18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18
 </data>
  </layer>
  <layer id="2" name="map" width="16" height="16">

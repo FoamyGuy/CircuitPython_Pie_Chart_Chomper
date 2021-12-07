@@ -1,7 +1,6 @@
-import time
-
+import board
+import digitalio
 import displayio
-from foamyguy_waveshare_pico_lcd_1_14 import WavesharePicoLCD114
 from pi_chart_chompers_lib import PieChartChompersGame
 from entity import Entity
 import time
@@ -14,18 +13,33 @@ PREV_PLAYER_SPRITE_CHANGE = 0
 
 SCORE = 0
 
-lcd = WavesharePicoLCD114()
+btn_down = digitalio.DigitalInOut(board.SW_DOWN)
+btn_down.switch_to_input(pull=digitalio.Pull.UP)
+btn_down.pull = digitalio.Pull.UP
 
-display = lcd.display
+btn_right = digitalio.DigitalInOut(board.SW_RIGHT)
+btn_right.switch_to_input(pull=digitalio.Pull.UP)
+btn_right.pull = digitalio.Pull.UP
+
+btn_left = digitalio.DigitalInOut(board.SW_LEFT)
+btn_left.switch_to_input(pull=digitalio.Pull.UP)
+btn_left.pull = digitalio.Pull.UP
+
+btn_up = digitalio.DigitalInOut(board.SW_UP)
+btn_up.switch_to_input(pull=digitalio.Pull.UP)
+btn_up.pull = digitalio.Pull.UP
+
+
+display = board.DISPLAY
 
 # Make the display context
 main_group = displayio.Group()
 display.show(main_group)
 
 my_game = PieChartChompersGame(
-    "pacman_map_0.json",
+    "pacman_map_2.json",
     camera_width=16,
-    camera_height=9,
+    camera_height=16,
     entity_default_tile=4
 )
 #print("entity tilegrid (0,0) = {}".format(my_game._map_tilegrid[0, 0]))
@@ -60,21 +74,19 @@ def _lose_level():
 
 my_game.lose_level = _lose_level
 while True:
-    event = lcd.key_events()
-    if event:
-        if event.pressed:
-            print("{} pressed".format(lcd.KEY_DICT[event.key_number]))
-            if event.key_number == lcd.RIGHT:
-                my_game.player_entity.direction = Entity.DIRECTION_RIGHT
-            if event.key_number == lcd.LEFT:
-                my_game.player_entity.direction = Entity.DIRECTION_LEFT
-            if event.key_number == lcd.UP:
-                my_game.player_entity.direction = Entity.DIRECTION_UP
-            if event.key_number == lcd.DOWN:
-                my_game.player_entity.direction = Entity.DIRECTION_DOWN
 
-        if event.released:
-            print("{} released".format(lcd.KEY_DICT[event.key_number]))
+    print(btn_right.value)
+    #print("{} pressed".format(lcd.KEY_DICT[event.key_number]))
+    if not btn_right.value:
+        my_game.player_entity.direction = Entity.DIRECTION_RIGHT
+    if not btn_left.value:
+        my_game.player_entity.direction = Entity.DIRECTION_LEFT
+    if not btn_up.value:
+        my_game.player_entity.direction = Entity.DIRECTION_UP
+    if not btn_down.value:
+        my_game.player_entity.direction = Entity.DIRECTION_DOWN
+
+
 
     now = time.monotonic()
 
