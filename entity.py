@@ -144,3 +144,9 @@ class Entity:
         #print("colliding x: {} - y: {}".format(_colliding_x, _colliding_y))
 
         return _colliding_x and _colliding_y
+
+    def game_tick(self, game_obj):
+        """
+        Subclasses override this to add behavior to the entity.
+        :return:
+        """

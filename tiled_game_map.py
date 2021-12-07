@@ -20,6 +20,7 @@ class TiledGameMap(Group):
             use_cursor=False
     ):
         super().__init__()
+
         f = open(map_json_file, "r")
         self._map_obj = json.loads(f.read())
         f.close()
@@ -35,7 +36,7 @@ class TiledGameMap(Group):
 
         self.camera_loc = {"x": 0, "y": 0}
         self._tile_properties = {0: {"can_walk": True}}
-        self.enemies = []
+        self.entities = []
 
         if "tiles" in self.map_obj['tilesets'][0]:
             print("has tiles")
@@ -81,7 +82,13 @@ class TiledGameMap(Group):
         #                                  tile_height=self._tile_height,
         #                                  default_tile=player_default_tile)
 
-        self._player_entity = Entity(
+        if self.player_entity_class:
+            _player_entity_class = self.player_entity_class
+            print("have custom Player entity class")
+        else:
+            _player_entity_class = Entity
+
+        self._player_entity = _player_entity_class(
             self._sprite_sheet, pixel_shader=self._palette,
             width=1,
             height=1,
@@ -97,7 +104,21 @@ class TiledGameMap(Group):
 
         self.camera_width = camera_width
         self.camera_height = camera_height
-        self._load_tilegrids(width=camera_width, height=camera_height)
+        if self.npc_entity_map:
+            entity_map = self.npc_entity_map
+        else:
+            entity_map = None
+        if self.player_property:
+            player_property = self.player_property
+        else:
+            player_property = None
+
+        self._load_tilegrids(
+            width=camera_width,
+            height=camera_height,
+            player_property=player_property,
+            npc_entity_map=entity_map
+        )
 
         # set the initial player location
         self.update_player_location()
@@ -122,7 +143,7 @@ class TiledGameMap(Group):
         self.map_obj['layers'][1]["data"][self.get_index_from_coords(tile_coords)] = new_tile_index
         self._map_tilegrid[tile_coords['x'], tile_coords['y']] = new_tile_index
 
-    def _load_tilegrids(self, x=0, y=0, width=10, height=8):
+    def _load_tilegrids(self, x=0, y=0, width=10, height=8, player_property="player", npc_entity_map=None):
         self.camera_loc["x"] = x
         self.camera_loc["y"] = y
 
@@ -167,25 +188,27 @@ class TiledGameMap(Group):
                 # print("{}, {} = {}".format(_x, _y, tile_index - 1))
                 _player_layer_index = _player_tiles[index]
                 # print("player layer index: ({},{})={}".format(_x, _y, _player_layer_index))
-                if self.get_tile_property(_player_layer_index - 1, "player"):
+                if self.get_tile_property(_player_layer_index - 1, player_property):
                     print("found player ({}, {})".format(_x, _y))
                     # place player
                     self.player_loc["x"] = _x + x
                     self.player_loc["y"] = _y + y
-                elif self.get_tile_property(_player_layer_index - 1, "ghost"):
-                    # create a ghost entity obj
-                    _enemy = Entity(
-                        self._sprite_sheet, pixel_shader=self._palette,
-                        width=1,
-                        height=1,
-                        tile_width=self._tile_width,
-                        tile_height=self._tile_height,
-                        default_tile=_player_layer_index - 1
-                    )
-                    _enemy.x = (_x + x) * self._tile_width
-                    _enemy.y = (_y + y) * self._tile_height
-                    print("enemy loc: ({}, {})".format(_enemy.x, _enemy.y))
-                    self.enemies.append(_enemy)
+
+                for entity_type in npc_entity_map.keys():
+                    if self.get_tile_property(_player_layer_index - 1, entity_type):
+                        # create a entity obj
+                        _new_entity = npc_entity_map[entity_type](
+                            self._sprite_sheet, pixel_shader=self._palette,
+                            width=1,
+                            height=1,
+                            tile_width=self._tile_width,
+                            tile_height=self._tile_height,
+                            default_tile=_player_layer_index - 1
+                        )
+                        _new_entity.x = (_x + x) * self._tile_width
+                        _new_entity.y = (_y + y) * self._tile_height
+                        print("enemy loc: ({}, {})".format(_new_entity.x, _new_entity.y))
+                        self.entities.append(_new_entity)
 
                 # place non-player entity
                 if "count" not in self.map_obj["tilesets"][0]["tiles"][tile_index - 1].keys():
@@ -202,7 +225,7 @@ class TiledGameMap(Group):
                 self._map_tilegrid[_x, _y] = self.empty_map_tile
         print("entity tilegrid (0,0) = {}".format(self._map_tilegrid[0, 0]))
 
-        for _enemy in self.enemies:
+        for _enemy in self.entities:
             self.append(_enemy.tilegrid)
 
     @property
@@ -306,3 +329,8 @@ class TiledGameMap(Group):
     @property
     def player_entity(self):
         return self._player_entity
+
+    def game_tick(self):
+        self.player_entity.game_tick(self)
+        for entity in self.entities:
+            entity.game_tick(self)

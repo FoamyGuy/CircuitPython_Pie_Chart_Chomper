@@ -2,7 +2,7 @@ import time
 
 import displayio
 from foamyguy_waveshare_pico_lcd_1_14 import WavesharePicoLCD114
-from TiledGameMap import TiledGameMap
+from pi_chart_chompers_lib import PieChartChompersGame
 from entity import Entity
 import time
 
@@ -22,7 +22,7 @@ display = lcd.display
 main_group = displayio.Group()
 display.show(main_group)
 
-my_game = TiledGameMap(
+my_game = PieChartChompersGame(
     "pacman_map_0.json",
     camera_width=16,
     camera_height=9,
@@ -43,7 +43,22 @@ _moved = False
 print(my_game.map_obj["tilesets"][0]["tiles"][4]["count"])
 REMAINING_PELLETES = my_game.map_obj["tilesets"][0]["tiles"][4]["count"]
 
-my_game.enemies[0].direction = Entity.DIRECTION_LEFT
+
+def _lose_level():
+    global my_game
+    print("Player colliding with ghost")
+    main_group.remove(my_game)
+    my_game = PieChartChompersGame(
+        "pacman_map_0.json",
+        camera_width=16,
+        camera_height=9,
+        entity_default_tile=4
+    )
+    main_group.append(my_game)
+    my_game.lose_level = _lose_level
+
+
+my_game.lose_level = _lose_level
 while True:
     event = lcd.key_events()
     if event:
@@ -66,97 +81,7 @@ while True:
     if PREV_TICK + TICK_SPEED < now:
         PREV_TICK = now
 
-        if my_game.player_entity.direction != Entity.DIRECTION_NONE:
-            next_pixel_loc = my_game.player_entity.next_pixel_current_direction
-            next_tile_coords = {
-                "x": next_pixel_loc[0] // my_game._tile_width,
-                "y": next_pixel_loc[1] // my_game._tile_height
-            }
-            #print(next_tile_coords)
-            #print(next_pixel_loc)
-            if my_game.is_tile_moveable(
-                    next_tile_coords
-            ):
-                #print(my_game.get_tile_name(next_tile_coords))
-                if my_game.get_tile_name(next_tile_coords) == "pellet":
-                    SCORE += 1
-                    print("score +1")
-                    REMAINING_PELLETES -= 1
-                    #my_game.map_obj['layers'][1]["data"][my_game.get_index_from_coords(next_tile_coords)] = 24
-                    my_game.change_map_tile(next_tile_coords, 24)
-                    if REMAINING_PELLETES == 0:
-                        print("YOU WIN!!")
-
-                for enemy in my_game.enemies:
-                    #print("player loc: ({}, {})".format(my_game.player_entity.x, my_game.player_entity.y))
-                    #print("enemy loc: ({}, {})".format(my_game.player_entity.x, my_game.player_entity.y))
-                    if my_game.player_entity.is_colliding(enemy):
-                        print("Player colliding with ghost")
-                        main_group.remove(my_game)
-                        my_game = TiledGameMap(
-                            "pacman_map_0.json",
-                            camera_width=16,
-                            camera_height=9,
-                            entity_default_tile=4
-                        )
-                        main_group.append(my_game)
-
-                next_tile_origin = my_game.get_tile_origin(next_tile_coords)
-
-                #print("can walk on next tile")
-                if my_game.player_entity.direction == Entity.DIRECTION_RIGHT:
-                    my_game.player_entity.x += 1
-                    if my_game.player_entity.y != next_tile_origin[1]:
-                        my_game.player_entity.y = next_tile_origin[1]
-                if my_game.player_entity.direction == Entity.DIRECTION_LEFT:
-                    my_game.player_entity.x -= 1
-                    if my_game.player_entity.y != next_tile_origin[1]:
-                        my_game.player_entity.y = next_tile_origin[1]
-                if my_game.player_entity.direction == Entity.DIRECTION_UP:
-                    my_game.player_entity.y -= 1
-                    if my_game.player_entity.x != next_tile_origin[0]:
-                        my_game.player_entity.x = next_tile_origin[0]
-                if my_game.player_entity.direction == Entity.DIRECTION_DOWN:
-                    my_game.player_entity.y += 1
-                    if my_game.player_entity.x != next_tile_origin[0]:
-                        my_game.player_entity.x = next_tile_origin[0]
-            else:
-                my_game.player_entity.direction = Entity.DIRECTION_NONE
-
-        # Enemy movement
-        for enemy in my_game.enemies:
-            if enemy.direction != Entity.DIRECTION_NONE:
-                next_pixel_loc = enemy.next_pixel_current_direction
-                next_tile_coords = {
-                    "x": next_pixel_loc[0] // my_game._tile_width,
-                    "y": next_pixel_loc[1] // my_game._tile_height
-                }
-                # print(next_tile_coords)
-                # print(next_pixel_loc)
-                if my_game.is_tile_moveable(
-                        next_tile_coords
-                ):
-                    if enemy.direction == Entity.DIRECTION_RIGHT:
-                        enemy.x += 1
-                    if enemy.direction == Entity.DIRECTION_LEFT:
-                        enemy.x -= 1
-                    if enemy.direction == Entity.DIRECTION_UP:
-                        enemy.y -= 1
-                    if enemy.direction == Entity.DIRECTION_DOWN:
-                        enemy.y += 1
-                else:
-                    if enemy.direction == Entity.DIRECTION_RIGHT:
-                        print("turning to face up")
-                        enemy.direction = Entity.DIRECTION_UP
-                    elif enemy.direction == Entity.DIRECTION_LEFT:
-                        print("turning to face down")
-                        enemy.direction = Entity.DIRECTION_DOWN
-                    elif enemy.direction == Entity.DIRECTION_UP:
-                        print("turning to face left")
-                        enemy.direction = Entity.DIRECTION_LEFT
-                    elif enemy.direction == Entity.DIRECTION_DOWN:
-                        print("turning to face right")
-                        enemy.direction = Entity.DIRECTION_RIGHT
+        my_game.game_tick()
 
     if my_game.player_entity.direction != Entity.DIRECTION_NONE:
         if PREV_PLAYER_SPRITE_CHANGE + PLAYER_SPRITE_CHANGE_SPEED < now:
