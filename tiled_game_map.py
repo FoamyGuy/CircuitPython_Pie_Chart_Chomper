@@ -140,10 +140,13 @@ class TiledGameMap(Group):
                              width=self.camera_width, height=self.camera_height)
 
     def change_map_tile(self, tile_coords, new_tile_index):
+        print("inside change map tile: {} index: {}".format(tile_coords, self.get_index_from_coords(
+            tile_coords)))
         self.map_obj['layers'][1]["data"][self.get_index_from_coords(tile_coords)] = new_tile_index
         self._map_tilegrid[tile_coords['x'], tile_coords['y']] = new_tile_index
 
-    def _load_tilegrids(self, x=0, y=0, width=10, height=8, player_property="player", npc_entity_map=None):
+    def _load_tilegrids(self, x=0, y=0, width=10, height=8, player_property="player",
+                        npc_entity_map=None, load_entities_from_map=True):
         self.camera_loc["x"] = x
         self.camera_loc["y"] = y
 
@@ -152,10 +155,21 @@ class TiledGameMap(Group):
             _tiles_to_load = []
             for _y in range(height):
                 for _x in range(width):
-                    _extra_offset = (self.map_obj["width"] - width) * _y
-                    _tiles_to_load.append(
-                        self.map_obj['layers'][layer_index]['data'][_x + _y * width + start_index + _extra_offset])
-            print(_tiles_to_load)
+                    # check if out of bounds of map
+                    if self.map_obj["width"] > _x + x >= 0 and \
+                            self.map_obj["height"] > _y + y >= 0:
+                        _extra_offset = (self.map_obj["width"] - width) * _y
+                        _index_to_load = _x + _y * width + start_index + _extra_offset
+                        # print(f"itl:{_index_to_load}")
+                        # print(f"({_x}), ({_y})")
+                        # print(f"y:{_index_to_load // self.map_obj['width']} x:{_index_to_load % self.map_obj['width']}")
+                        _tiles_to_load.append(
+                            self.map_obj['layers'][layer_index]['data'][
+                                _x + _y * width + start_index + _extra_offset])
+
+                    else:  # return default tile if out of bounds
+                        _tiles_to_load.append(self.background_default_tile)
+            # print(_tiles_to_load)
             return _tiles_to_load
 
         _extra_offset = (self.map_obj["width"] - width) * y
@@ -174,11 +188,13 @@ class TiledGameMap(Group):
 
         _map_tiles = _build_tiles_list(1)
         print("map tiles:")
-        print(_map_tiles)
+        # print(_map_tiles)
 
-        _player_tiles = _build_tiles_list(2)
-        print("player tiles:")
-        print(_player_tiles)
+        _entity_tiles = None
+        if load_entities_from_map:
+            _entity_tiles = _build_tiles_list(2)
+            print("entity tiles:")
+            # print(_entity_tiles)
         for index, tile_index in enumerate(_map_tiles):
             _y = index // width
             _x = index % width
@@ -186,29 +202,30 @@ class TiledGameMap(Group):
 
             if tile_index != 0:
                 # print("{}, {} = {}".format(_x, _y, tile_index - 1))
-                _player_layer_index = _player_tiles[index]
-                # print("player layer index: ({},{})={}".format(_x, _y, _player_layer_index))
-                if self.get_tile_property(_player_layer_index - 1, player_property):
-                    print("found player ({}, {})".format(_x, _y))
-                    # place player
-                    self.player_loc["x"] = _x + x
-                    self.player_loc["y"] = _y + y
+                if load_entities_from_map:
+                    _player_layer_index = _entity_tiles[index]
+                    # print("player layer index: ({},{})={}".format(_x, _y, _player_layer_index))
+                    if self.get_tile_property(_player_layer_index - 1, player_property):
+                        print("found player ({}, {})".format(_x, _y))
+                        # place player
+                        self.player_loc["x"] = _x + x
+                        self.player_loc["y"] = _y + y
 
-                for entity_type in npc_entity_map.keys():
-                    if self.get_tile_property(_player_layer_index - 1, entity_type):
-                        # create a entity obj
-                        _new_entity = npc_entity_map[entity_type](
-                            self._sprite_sheet, pixel_shader=self._palette,
-                            width=1,
-                            height=1,
-                            tile_width=self._tile_width,
-                            tile_height=self._tile_height,
-                            default_tile=_player_layer_index - 1
-                        )
-                        _new_entity.x = (_x + x) * self._tile_width
-                        _new_entity.y = (_y + y) * self._tile_height
-                        print("enemy loc: ({}, {})".format(_new_entity.x, _new_entity.y))
-                        self.entities.append(_new_entity)
+                    for entity_type in npc_entity_map.keys():
+                        if self.get_tile_property(_player_layer_index - 1, entity_type):
+                            # create a entity obj
+                            _new_entity = npc_entity_map[entity_type](
+                                self._sprite_sheet, pixel_shader=self._palette,
+                                width=1,
+                                height=1,
+                                tile_width=self._tile_width,
+                                tile_height=self._tile_height,
+                                default_tile=_player_layer_index - 1
+                            )
+                            _new_entity.x = (_x + x) * self._tile_width
+                            _new_entity.y = (_y + y) * self._tile_height
+                            print("enemy loc: ({}, {})".format(_new_entity.x, _new_entity.y))
+                            self.entities.append(_new_entity)
 
                 # place non-player entity
                 if "count" not in self.map_obj["tilesets"][0]["tiles"][tile_index - 1].keys():
@@ -226,7 +243,8 @@ class TiledGameMap(Group):
         print("entity tilegrid (0,0) = {}".format(self._map_tilegrid[0, 0]))
 
         for _enemy in self.entities:
-            self.append(_enemy.tilegrid)
+            if _enemy.tilegrid not in self:
+                self.append(_enemy.tilegrid)
 
     @property
     def map_obj(self):
@@ -322,8 +340,10 @@ class TiledGameMap(Group):
         return self.get_tile_property(tile_id - 1, "name")
 
     def set_camera_loc(self, tile_coords):
-        self._load_tilegrids(x=tile_coords["x"], y=tile_coords["y"])
-        self.update_cursor_location(self.cursor_loc)
+        self._load_tilegrids(x=tile_coords["x"], y=tile_coords["y"], width=self.camera_width,
+                             height=self.camera_height, load_entities_from_map=False)
+        if self.use_cursor:
+            self.update_cursor_location(self.cursor_loc)
         self.update_player_location()
 
     @property
